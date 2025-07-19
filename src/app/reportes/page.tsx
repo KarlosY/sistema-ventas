@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSaleRepository';
 import { GetAllSalesUseCase } from '@/application/use-cases/getAllSales';
 import { SaleWithDetails } from '@/domain/repositories/ISaleRepository';
+import { toast } from 'sonner';
 
 export default function ReportesPage() {
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
@@ -18,7 +19,7 @@ export default function ReportesPage() {
         setSales(salesData);
       } catch (error) {
         console.error('Error fetching sales reports:', error);
-        alert('No se pudieron cargar los reportes de ventas.');
+        toast.error('No se pudieron cargar los reportes de ventas.');
       } finally {
         setLoading(false);
       }
@@ -32,9 +33,17 @@ export default function ReportesPage() {
       <h1 className="text-3xl font-bold mb-6">Reporte de Ventas</h1>
 
       {loading ? (
-        <p>Cargando reportes...</p>
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+        </div>
       ) : sales.length === 0 ? (
-        <p className="text-gray-500">No hay ventas registradas todavía.</p>
+        <div className="text-center py-20 bg-white rounded-lg shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 className="mt-4 text-lg font-medium text-gray-900">No hay ventas registradas</h3>
+          <p className="mt-1 text-sm text-gray-500">Parece que aún no se ha completado ninguna venta. ¡Ve a la sección de ventas para registrar la primera!</p>
+        </div>
       ) : (
         <div className="space-y-6">
           {sales.map((sale) => (

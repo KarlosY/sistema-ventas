@@ -8,11 +8,13 @@ import { CreateProductUseCase } from '@/application/use-cases/createProduct';
 import { UpdateProductUseCase } from '@/application/use-cases/updateProduct';
 import { DeleteProductUseCase } from '@/application/use-cases/deleteProduct';
 import ProductForm from '@/components/ProductForm';
+import { toast } from 'sonner';
 
 export default function ProductosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
 
   // Instanciamos el repositorio y los casos de uso
   const productRepository = new SupabaseProductRepository();
@@ -22,8 +24,16 @@ export default function ProductosPage() {
   const deleteProduct = new DeleteProductUseCase(productRepository);
 
   const loadProducts = async () => {
-    const productsData = await getAllProducts.execute();
-    setProducts(productsData);
+    try {
+      setLoading(true);
+      const productsData = await getAllProducts.execute();
+      setProducts(productsData);
+    } catch (error) {
+      console.error("Error loading products:", error);
+      // Aquí podríamos usar un toast de error si la carga falla
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -40,11 +50,25 @@ export default function ProductosPage() {
     setIsFormVisible(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-      await deleteProduct.execute(id);
-      loadProducts(); // Recargamos la lista
-    }
+  const handleDelete = (id: number) => {
+    toast("¿Estás seguro de que quieres eliminar este producto?", {
+      action: {
+        label: "Eliminar",
+        onClick: async () => {
+          try {
+            await deleteProduct.execute(id);
+            toast.success("Producto eliminado exitosamente");
+            loadProducts(); // Recargamos la lista
+          } catch (error) {
+            toast.error("No se pudo eliminar el producto");
+          }
+        },
+      },
+      cancel: {
+        label: "Cancelar",
+        onClick: () => {},
+      },
+    });
   };
 
   const handleSave = async (productData: Omit<Product, 'id' | 'created_at'>) => {
@@ -74,6 +98,11 @@ export default function ProductosPage() {
         />
       )}
 
+      {loading ? (
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+        </div>
+      ) : (
       <div className="mt-8">
         <h2 className="text-2xl font-semibold mb-4">Listado de Productos</h2>
         <div className="shadow-lg rounded-lg overflow-hidden">
@@ -100,8 +129,14 @@ export default function ProductosPage() {
               ))}
               {products.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="text-center py-10 text-gray-500">
-                    No hay productos registrados.
+                  <td colSpan={4}>
+                    <div className="text-center py-20">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      <h3 className="mt-4 text-lg font-medium text-gray-900">No hay productos</h3>
+                      <p className="mt-1 text-sm text-gray-500">Crea un nuevo producto para empezar a gestionar tu inventario.</p>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -109,6 +144,7 @@ export default function ProductosPage() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }

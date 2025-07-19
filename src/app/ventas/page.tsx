@@ -6,6 +6,7 @@ import { SupabaseProductRepository } from '@/infrastructure/repositories/Supabas
 import { GetAllProductsUseCase } from '@/application/use-cases/getAllProducts';
 import { CreateSaleUseCase } from '@/application/use-cases/createSale';
 import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSaleRepository';
+import { toast } from 'sonner';
 
 export interface CartItem extends Product {
   quantity: number;
@@ -15,6 +16,7 @@ function VentasComponent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
   // Instanciamos dependencias
   const productRepository = new SupabaseProductRepository();
@@ -24,8 +26,16 @@ function VentasComponent() {
 
   useEffect(() => {
     const loadProducts = async () => {
-      const productsData = await getAllProducts.execute();
-      setProducts(productsData);
+      try {
+        setLoading(true);
+        const productsData = await getAllProducts.execute();
+        setProducts(productsData);
+      } catch (error) {
+        console.error("Error loading products:", error);
+        toast.error("No se pudieron cargar los productos disponibles.");
+      } finally {
+        setLoading(false);
+      }
     };
     loadProducts();
   }, []);
@@ -42,7 +52,7 @@ function VentasComponent() {
     const currentQuantityInCart = existingCartItem ? existingCartItem.quantity : 0;
 
     if (currentQuantityInCart >= productToAdd.stock) {
-      alert(`No puedes añadir más de ${productToAdd.stock} unidades de "${productToAdd.name}", que es el stock disponible.`);
+      toast.warning(`No puedes añadir más de ${productToAdd.stock} unidades de "${productToAdd.name}", que es el stock disponible.`);
       return;
     }
 
@@ -65,13 +75,13 @@ function VentasComponent() {
 
     try {
       await createSale.execute(cart);
-      alert(`Venta registrada exitosamente por un total de: $${total.toFixed(2)}`);
+      toast.success(`Venta registrada exitosamente por un total de: $${total.toFixed(2)}`);
       setCart([]); // Limpiar carrito
       // Opcional: Recargar la lista de productos para reflejar el nuevo stock
       const productsData = await getAllProducts.execute();
       setProducts(productsData);
     } catch (error) {
-      alert(`Error al registrar la venta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      toast.error(`Error al registrar la venta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
@@ -82,26 +92,32 @@ function VentasComponent() {
       {/* Sección para agregar productos */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
         <h2 className="text-2xl font-semibold mb-4">Añadir Producto</h2>
-        <div className="flex items-center space-x-4">
-          <select
-            value={selectedProductId}
-            onChange={(e) => setSelectedProductId(e.target.value)}
-            className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Seleccione un producto</option>
-            {products.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.name} (${p.price.toFixed(2)})
-              </option>
-            ))}
-          </select>
-          <button 
-            onClick={handleAddProduct}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Añadir
-          </button>
-        </div>
+        {loading ? (
+          <div className="flex justify-center items-center py-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500"></div>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-4">
+            <select
+              value={selectedProductId}
+              onChange={(e) => setSelectedProductId(e.target.value)}
+              className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">Seleccione un producto</option>
+              {products.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name} (${p.price.toFixed(2)}) - Stock: {p.stock}
+                </option>
+              ))}
+            </select>
+            <button 
+              onClick={handleAddProduct}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Añadir
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Carrito de compras */}
@@ -118,7 +134,13 @@ function VentasComponent() {
             </div>
           ))}
           {cart.length === 0 && (
-            <p className="text-gray-500">El carrito está vacío.</p>
+            <div className="text-center py-10">
+              <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">Tu carrito está vacío</h3>
+              <p className="mt-1 text-sm text-gray-500">Selecciona un producto de la lista para añadirlo.</p>
+            </div>
           )}
         </div>
         <div className="mt-6 pt-4 border-t flex justify-between items-center">

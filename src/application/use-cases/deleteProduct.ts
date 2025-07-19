@@ -5,7 +5,7 @@ import { IProductRepository } from '@/domain/repositories/IProductRepository';
 export class DeleteProductUseCase {
   constructor(private productRepository: IProductRepository) {}
 
-  async execute(id: string): Promise<void> {
+  async execute(id: number): Promise<void> {
     return this.productRepository.delete(id);
   }
 }
