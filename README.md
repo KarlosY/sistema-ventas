@@ -93,3 +93,11 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver la 
   - Registrar la venta, lo que descuenta el stock de los productos correspondientes.
   - Validación de stock para no vender más de lo disponible.
 - **Reporte de Ventas:** Visualizar un historial de todas las ventas realizadas, con sus detalles.
+
+## Licencia
+
+Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
+
+---
+
+© 2025 Karlos Berrios - Ykar.NET
