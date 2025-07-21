@@ -10,7 +10,9 @@ import { formatCurrency } from '@/utils/currency';
 
 export default function ReportesPage() {
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
+  const [salesToday, setSalesToday] = useState(0);
+  const [salesThisMonth, setSalesThisMonth] = useState(0);
 
   useEffect(() => {
     const fetchSales = async () => {
@@ -30,6 +32,34 @@ export default function ReportesPage() {
     fetchSales();
   }, []);
 
+  useEffect(() => {
+    if (sales.length > 0) {
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+
+      const todaySales = sales
+        .filter(sale => {
+          const saleDate = new Date(sale.created_at!);
+          return saleDate.getDate() === today.getDate() &&
+                 saleDate.getMonth() === currentMonth &&
+                 saleDate.getFullYear() === currentYear;
+        })
+        .reduce((total, sale) => total + sale.total, 0);
+
+      const monthSales = sales
+        .filter(sale => {
+          const saleDate = new Date(sale.created_at!);
+          return saleDate.getMonth() === currentMonth &&
+                 saleDate.getFullYear() === currentYear;
+        })
+        .reduce((total, sale) => total + sale.total, 0);
+
+      setSalesToday(todaySales);
+      setSalesThisMonth(monthSales);
+    }
+  }, [sales]);
+
   return (
     <div className="container mx-auto p-8">
       <div className="flex justify-between items-center mb-6">
@@ -38,6 +68,20 @@ export default function ReportesPage() {
           Volver al Inicio
         </Link>
       </div>
+
+      {/* Summary Cards */}
+      {!loading && sales.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-md text-center">
+            <h2 className="text-xl font-semibold text-gray-600 mb-2">Ventas de Hoy</h2>
+            <p className="text-3xl font-bold text-blue-600">{formatCurrency(salesToday)}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md text-center">
+            <h2 className="text-xl font-semibold text-gray-600 mb-2">Ventas del Mes</h2>
+            <p className="text-3xl font-bold text-green-600">{formatCurrency(salesThisMonth)}</p>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center items-center py-20">
