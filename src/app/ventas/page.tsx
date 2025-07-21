@@ -8,6 +8,7 @@ import { CreateSaleUseCase } from '@/application/use-cases/createSale';
 import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSaleRepository';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { formatCurrency } from '@/utils/currency';
 
 export interface CartItem extends Product {
   quantity: number;
@@ -76,7 +77,7 @@ function VentasComponent() {
 
     try {
       await createSale.execute(cart);
-      toast.success(`Venta registrada exitosamente por un total de: $${total.toFixed(2)}`);
+      toast.success(`Venta registrada exitosamente por un total de: ${formatCurrency(total)}`);
       setCart([]); // Limpiar carrito
       // Opcional: Recargar la lista de productos para reflejar el nuevo stock
       const productsData = await getAllProducts.execute();
@@ -112,7 +113,7 @@ function VentasComponent() {
               <option value="">Seleccione un producto</option>
               {products.map(p => (
                 <option key={p.id} value={p.id}>
-                  {p.name} (${p.price.toFixed(2)}) - Stock: {p.stock}
+                  {p.name} ({formatCurrency(p.price)}) - Stock: {p.stock}
                 </option>
               ))}
             </select>
@@ -136,7 +137,7 @@ function VentasComponent() {
                 <p className="font-semibold">{item.name}</p>
                 <p className="text-sm text-gray-600">Cantidad: {item.quantity}</p>
               </div>
-              <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+              <p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p>
             </div>
           ))}
           {cart.length === 0 && (
@@ -151,7 +152,7 @@ function VentasComponent() {
         </div>
         <div className="mt-6 pt-4 border-t flex justify-between items-center">
           <p className="text-xl font-bold">Total:</p>
-          <p className="text-xl font-bold">${total.toFixed(2)}</p>
+          <p className="text-xl font-bold">{formatCurrency(total)}</p>
         </div>
         <div className="mt-6 text-right">
           <button 

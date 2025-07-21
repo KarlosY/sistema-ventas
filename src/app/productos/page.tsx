@@ -10,6 +10,7 @@ import { DeleteProductUseCase } from '@/application/use-cases/deleteProduct';
 import ProductForm from '@/components/ProductForm';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { formatCurrency } from '@/utils/currency';
 
 export default function ProductosPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -125,7 +126,7 @@ export default function ProductosPage() {
               {products.map((product) => (
                 <tr key={product.id} className="border-b border-gray-200 hover:bg-gray-100">
                   <td className="px-5 py-4 text-sm bg-white">{product.name}</td>
-                  <td className="px-5 py-4 text-sm bg-white">${product.price.toFixed(2)}</td>
+                  <td className="px-5 py-4 text-sm bg-white">{formatCurrency(product.price)}</td>
                   <td className="px-5 py-4 text-sm bg-white">{product.stock}</td>
                   <td className="px-5 py-4 text-sm bg-white">
                     <button onClick={() => handleEdit(product)} className="text-indigo-600 hover:text-indigo-900 mr-4">Editar</button>

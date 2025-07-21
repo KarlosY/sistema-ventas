@@ -6,6 +6,7 @@ import { GetAllSalesUseCase } from '@/application/use-cases/getAllSales';
 import { SaleWithDetails } from '@/domain/repositories/ISaleRepository';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { formatCurrency } from '@/utils/currency';
 
 export default function ReportesPage() {
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
@@ -61,14 +62,14 @@ export default function ReportesPage() {
                     Fecha: {new Date(sale.created_at!).toLocaleString()}
                   </p>
                 </div>
-                <p className="text-2xl font-bold text-green-600">${sale.total.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(sale.total)}</p>
               </div>
               <div>
                 <h3 className="font-semibold mb-2">Productos Vendidos:</h3>
                 <ul className="list-disc list-inside space-y-1">
                   {sale.sale_details.map((detail) => (
                     <li key={detail.id} className="text-gray-700">
-                      {detail.products?.name || 'Producto no disponible'} - Cantidad: {detail.quantity} - Precio Unit.: ${detail.price.toFixed(2)}
+                      {detail.products?.name || 'Producto no disponible'} - Cantidad: {detail.quantity} - Precio Unit.: {formatCurrency(detail.price)}
                     </li>
                   ))}
                 </ul>
