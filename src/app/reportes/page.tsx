@@ -5,6 +5,7 @@ import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSa
 import { GetAllSalesUseCase } from '@/application/use-cases/getAllSales';
 import { SaleWithDetails } from '@/domain/repositories/ISaleRepository';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 export default function ReportesPage() {
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
@@ -30,7 +31,12 @@ export default function ReportesPage() {
 
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-6">Reporte de Ventas</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Reporte de Ventas</h1>
+        <Link href="/" className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+          Volver al Inicio
+        </Link>
+      </div>
 
       {loading ? (
         <div className="flex justify-center items-center py-20">

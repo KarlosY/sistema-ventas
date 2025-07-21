@@ -7,6 +7,7 @@ import { GetAllProductsUseCase } from '@/application/use-cases/getAllProducts';
 import { CreateSaleUseCase } from '@/application/use-cases/createSale';
 import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSaleRepository';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 export interface CartItem extends Product {
   quantity: number;
@@ -87,7 +88,12 @@ function VentasComponent() {
 
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-6">Registrar Venta</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Registrar Venta</h1>
+        <Link href="/" className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+          Volver al Inicio
+        </Link>
+      </div>
 
       {/* Sección para agregar productos */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">

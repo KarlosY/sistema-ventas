@@ -9,6 +9,7 @@ import { UpdateProductUseCase } from '@/application/use-cases/updateProduct';
 import { DeleteProductUseCase } from '@/application/use-cases/deleteProduct';
 import ProductForm from '@/components/ProductForm';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 export default function ProductosPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -85,9 +86,14 @@ export default function ProductosPage() {
     <div className="container mx-auto p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Gestión de Productos</h1>
-        <button onClick={handleCreate} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Crear Producto
-        </button>
+        <div>
+          <Link href="/" className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded mr-3">
+            Volver al Inicio
+          </Link>
+          <button onClick={handleCreate} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Crear Producto
+          </button>
+        </div>
       </div>
 
       {isFormVisible && (
