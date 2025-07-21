@@ -6,7 +6,7 @@ import { Product } from '@/domain/entities/Product';
 export class UpdateProductUseCase {
   constructor(private productRepository: IProductRepository) {}
 
-  async execute(id: string, productData: Partial<Omit<Product, 'id' | 'created_at'>>) {
+  async execute(id: number, productData: Partial<Omit<Product, 'id' | 'created_at'>>) {
     if (productData.price !== undefined && productData.price < 0) {
       throw new Error('Price cannot be negative.');
     }
