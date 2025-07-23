@@ -25,14 +25,14 @@ export default function ProductosPage() {
   const updateProduct = new UpdateProductUseCase(productRepository);
   const deleteProduct = new DeleteProductUseCase(productRepository);
 
-  const loadProducts = async () => {
+    const loadProducts = async () => {
     try {
       setLoading(true);
       const productsData = await getAllProducts.execute();
       setProducts(productsData);
     } catch (error) {
       console.error("Error loading products:", error);
-      // Aquí podríamos usar un toast de error si la carga falla
+      toast.error("No se pudieron cargar los productos.");
     } finally {
       setLoading(false);
     }
@@ -73,14 +73,23 @@ export default function ProductosPage() {
     });
   };
 
-  const handleSave = async (productData: Omit<Product, 'id' | 'created_at'>) => {
-    if (editingProduct) {
-      await updateProduct.execute(editingProduct.id, productData);
-    } else {
-      await createProduct.execute(productData);
+    const handleSave = async (productData: Omit<Product, 'id' | 'created_at'>) => {
+    try {
+      const isEditing = !!editingProduct;
+      if (isEditing) {
+        await updateProduct.execute(editingProduct.id, productData);
+        toast.success("Producto actualizado exitosamente");
+      } else {
+        await createProduct.execute(productData);
+        toast.success("Producto creado exitosamente");
+      }
+      loadProducts(); // Recargamos la lista
+      setIsFormVisible(false);
+    } catch (error) {
+      const action = editingProduct ? 'actualizar' : 'crear';
+      toast.error(`No se pudo ${action} el producto`);
+      console.error(`Error saving product:`, error);
     }
-    loadProducts(); // Recargamos la lista
-    setIsFormVisible(false);
   };
 
   return (

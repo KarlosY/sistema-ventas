@@ -87,12 +87,22 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver la 
 
 ## Funcionalidades Implementadas
 
-- **Gestión de Productos:** Crear, leer, actualizar y eliminar productos.
+- **Gestión de Productos:**
+  - Crear, leer, actualizar y eliminar productos.
+  - Formulario unificado para creación y edición.
 - **Registro de Ventas:**
   - Añadir productos a un carrito de compras.
   - Registrar la venta, lo que descuenta el stock de los productos correspondientes.
-  - Validación de stock para no vender más de lo disponible.
-- **Reporte de Ventas:** Visualizar un historial de todas las ventas realizadas, con sus detalles.
+  - Validación de stock en tiempo real para no vender más de lo disponible.
+- **Reportes Avanzados:**
+  - Visualizar un historial detallado de todas las ventas realizadas.
+  - Resumen de ventas con totales para el día y el mes en curso.
+- **Mejoras de UI/UX y Localización:**
+  - Notificaciones dinámicas y no intrusivas (toasts) para acciones del usuario.
+  - Indicadores de carga (spinners) para operaciones asíncronas.
+  - Estados vacíos mejorados en todas las páginas principales.
+  - Navegación fluida con botones para volver al inicio.
+  - Localización de moneda a Soles Peruanos (S/) en toda la aplicación.
 
 ## Licencia
 
