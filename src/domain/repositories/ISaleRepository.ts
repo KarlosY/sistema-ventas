@@ -23,4 +23,12 @@ export interface ISaleRepository {
    * @returns Una promesa que se resuelve con un array de ventas.
    */
   getAll(): Promise<SaleWithDetails[]>;
+
+  /**
+   * Obtiene todas las ventas dentro de un rango de fechas específico.
+   * @param startDate - La fecha de inicio del rango.
+   * @param endDate - La fecha de fin del rango.
+   * @returns Una promesa que se resuelve con un array de ventas filtradas.
+   */
+  findByDateRange(startDate: Date, endDate: Date): Promise<SaleWithDetails[]>;
 }

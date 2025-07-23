@@ -96,4 +96,25 @@ export class SupabaseSaleRepository implements ISaleRepository {
 
     return data || [];
   }
+
+  async findByDateRange(startDate: Date, endDate: Date): Promise<SaleWithDetails[]> {
+    const { data, error } = await supabase
+      .from(this.SALES_TABLE)
+      .select(`
+        *,
+        sale_details (*,
+          products (*)
+        )
+      `)
+      .gte('created_at', startDate.toISOString())
+      .lt('created_at', endDate.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching sales by date range:', error);
+      throw new Error('Could not fetch sales by date range.');
+    }
+
+    return data || [];
+  }
 }
