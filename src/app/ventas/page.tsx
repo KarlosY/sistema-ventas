@@ -70,6 +70,25 @@ function VentasComponent() {
     setSelectedProductId(''); // Resetear el selector
   };
 
+  const handleUpdateQuantity = (productId: number, newQuantity: number) => {
+    const productInProductsList = products.find(p => p.id === productId);
+    if (!productInProductsList) return;
+
+    if (newQuantity > productInProductsList.stock) {
+      toast.warning(`Stock máximo (${productInProductsList.stock}) alcanzado para "${productInProductsList.name}".`);
+      return;
+    }
+
+    if (newQuantity <= 0) {
+      // Remove item if quantity is 0 or less
+      setCart(cart.filter(item => item.id !== productId));
+    } else {
+      setCart(cart.map(item => 
+        item.id === productId ? { ...item, quantity: newQuantity } : item
+      ));
+    }
+  };
+
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleRegisterSale = async () => {
@@ -132,12 +151,22 @@ function VentasComponent() {
         <h2 className="text-2xl font-semibold mb-4">Carrito</h2>
         <div className="space-y-4">
           {cart.map(item => (
-            <div key={item.id} className="flex justify-between items-center border-b pb-2">
-              <div>
+            <div key={item.id} className="flex justify-between items-center border-b pb-2 gap-4">
+              <div className='flex-grow'>
                 <p className="font-semibold">{item.name}</p>
-                <p className="text-sm text-gray-600">Cantidad: {item.quantity}</p>
+                <p className="text-sm text-gray-500">{formatCurrency(item.price)} c/u</p>
               </div>
-              <p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold p-1 rounded-full w-8 h-8 flex items-center justify-center">-</button>
+                <span className="font-semibold w-8 text-center">{item.quantity}</span>
+                <button onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold p-1 rounded-full w-8 h-8 flex items-center justify-center">+</button>
+              </div>
+              <p className="font-semibold w-24 text-right">{formatCurrency(item.price * item.quantity)}</p>
+              <button onClick={() => handleUpdateQuantity(item.id, 0)} className="bg-red-500 hover:bg-red-600 text-white font-bold p-1 rounded-full w-8 h-8 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
           ))}
           {cart.length === 0 && (
