@@ -73,6 +73,36 @@ npm install
       price NUMERIC NOT NULL CHECK (price >= 0),
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+
+    -- 5. Creación de tipo para Roles de Usuario
+    -- Un ENUM asegura que los roles solo puedan tener valores predefinidos.
+    CREATE TYPE public.user_role AS ENUM ('Administrador', 'Vendedor');
+
+    -- 6. Tabla de Perfiles de Usuario
+    -- Almacena datos adicionales de los usuarios, como su rol.
+    -- Se vincula a la tabla 'auth.users' de Supabase.
+    CREATE TABLE public.profiles (
+      id UUID NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+      role public.user_role NOT NULL DEFAULT 'Vendedor'::public.user_role
+    );
+
+    -- 7. Función para crear un perfil automáticamente
+    -- Esta función se dispara cada vez que un nuevo usuario se registra en Supabase (auth.users).
+    -- Inserta una nueva fila en nuestra tabla 'profiles' para ese usuario.
+    CREATE OR REPLACE FUNCTION public.handle_new_user()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      INSERT INTO public.profiles (id, role)
+      VALUES (new.id, 'Vendedor'); -- Por defecto, los nuevos usuarios son 'Vendedor'
+      RETURN new;
+    END;
+    $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+    -- 8. Trigger para la función handle_new_user
+    -- Vincula la función al evento de inserción en la tabla auth.users.
+    CREATE TRIGGER on_auth_user_created
+      AFTER INSERT ON auth.users
+      FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
     ```
 
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
+import Navbar from '@/components/Navbar'; // Importar el Navbar
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -26,7 +27,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png"></link>
       </head>
       <body className="bg-gray-50 font-sans antialiased">
-        {children}
+        <Navbar /> {/* Añadir el Navbar aquí */}
+        <main className="p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
         <Toaster richColors />
       </body>
     </html>
