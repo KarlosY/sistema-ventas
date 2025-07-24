@@ -1,27 +1,41 @@
 // src/infrastructure/repositories/SupabaseProductRepository.ts
 
-import { IProductRepository } from '@/domain/repositories/IProductRepository';
+import { IProductRepository, PaginatedProducts } from '@/domain/repositories/IProductRepository';
 import { Product } from '@/domain/entities/Product';
 import { supabase } from '../lib/supabase';
 
 export class SupabaseProductRepository implements IProductRepository {
   private readonly TABLE_NAME = 'products';
 
-  async getAll(): Promise<Product[]> {
-    const { data, error } = await supabase.from(this.TABLE_NAME).select('*');
-    console.log('Supabase response:', { data, error }); // <-- DEBUG LOG
+  async getAll(searchTerm?: string, page: number = 1, limit: number = 10): Promise<PaginatedProducts> {
+    let query = supabase
+      .from(this.TABLE_NAME)
+      .select('*, categories(name)', { count: 'exact' });
+
+    if (searchTerm) {
+      query = query.ilike('name', `%${searchTerm}%`);
+    }
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
+    query = query.order('name');
+
+    const { data, error, count } = await query;
 
     if (error) {
-      console.error(
-        'Error fetching products:',
-        `Message: ${error.message}, Details: ${error.details}`
-      );
+      console.error('Error fetching products:', `Message: ${error.message}, Details: ${error.details}`);
       throw new Error(`Could not fetch products: ${error.message}`);
     }
-    return data || [];
+
+    return {
+      products: data || [],
+      totalCount: count || 0,
+    };
   }
 
-  async create(productData: Omit<Product, 'id' | 'created_at'>): Promise<Product> {
+  async create(productData: Omit<Product, 'id' | 'created_at' | 'categories'>): Promise<Product> {
     const { data, error } = await supabase
       .from(this.TABLE_NAME)
       .insert(productData)
@@ -36,7 +50,7 @@ export class SupabaseProductRepository implements IProductRepository {
     return data;
   }
 
-  async update(id: number, productData: Partial<Omit<Product, 'id' | 'created_at'>>): Promise<Product | null> {
+  async update(id: number, productData: Partial<Omit<Product, 'id' | 'created_at' | 'categories'>>): Promise<Product | null> {
     const { data, error } = await supabase
       .from(this.TABLE_NAME)
       .update(productData)

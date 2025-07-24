@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSaleRepository';
 import { GetAllSalesUseCase } from '@/application/use-cases/getAllSales';
 import { GetSalesByDateRangeUseCase } from '@/application/use-cases/getSalesByDateRange';
@@ -15,26 +15,33 @@ import { es } from 'date-fns/locale';
 import Papa from 'papaparse';
 import { SalesTrendChart } from '@/components/charts/SalesTrendChart';
 import { TopProductsChart } from '@/components/charts/TopProductsChart';
+import { Pagination } from '@/components/Pagination';
 
 const saleRepository = new SupabaseSaleRepository();
 
 export default function ReportesPage() {
   // State for the data being displayed in the list
-  const [displayedSales, setDisplayedSales] = useState<SaleWithDetails[]>([]);
+  const [sales, setSales] = useState<SaleWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isFiltering, setIsFiltering] = useState(false);
-
-  // State for the summary cards, calculated once on initial load
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalSales, setTotalSales] = useState(0);
+  const ITEMS_PER_PAGE = 10;
+  
+  // State for summary cards, calculated once on initial load of all sales
   const [salesToday, setSalesToday] = useState(0);
   const [salesThisMonth, setSalesThisMonth] = useState(0);
   
-  // State for the date picker UI
-  const [range, setRange] = useState<DateRange | undefined>();
-
-  // State for search
+  // State for filters
+  const [range, setRange] = useState<DateRange | undefined>(() => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 29); // Default to last 30 days
+    return { from: startDate, to: endDate };
+  });
   const [searchTerm, setSearchTerm] = useState('');
 
-  const calculateSummaries = (sales: SaleWithDetails[]) => {
+  // Calculate summaries only once from all sales data
+  const calculateSummaries = useCallback((allSales: SaleWithDetails[]) => {
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
@@ -58,96 +65,93 @@ export default function ReportesPage() {
 
     setSalesToday(todaySales);
     setSalesThisMonth(monthSales);
-  };
+  }, []); // Empty dependency array means this function is created only once
 
-  const filteredAndSearchedSales = useMemo(() => {
-    if (!searchTerm) {
-      return displayedSales;
-    }
-    return displayedSales.filter(sale =>
-      sale.id.toString().includes(searchTerm)
-    );
-  }, [displayedSales, searchTerm]);
 
-  // Initial data fetch for summaries and initial view
-  useEffect(() => {
-    const fetchInitialData = async () => {
+
+  const loadSales = useCallback(async (currentRange: DateRange, search: string, page: number) => {
+    if (currentRange?.from && currentRange?.to) {
       setLoading(true);
-      const getAllSales = new GetAllSalesUseCase(saleRepository);
+      const getSalesByDate = new GetSalesByDateRangeUseCase(saleRepository);
       try {
-        const allSales = await getAllSales.execute();
-        setDisplayedSales(allSales);
-        calculateSummaries(allSales);
+        const { sales: filteredSales, totalCount } = await getSalesByDate.execute(currentRange.from, currentRange.to, search, page, ITEMS_PER_PAGE);
+        setSales(filteredSales);
+        setTotalSales(totalCount);
       } catch (error) {
-        console.error('Error fetching initial sales reports:', error);
-        toast.error('No se pudieron cargar los reportes de ventas.');
+        console.error('Error fetching sales:', error);
+        toast.error('No se pudieron cargar las ventas.');
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchInitialData();
+    }
   }, []);
 
-  const handleFilter = useCallback(async () => {
+  // Effect to reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [range, searchTerm]);
+
+  // Effect for loading sales based on filters and pagination
+  useEffect(() => {
     if (range?.from && range?.to) {
-      setIsFiltering(true);
-      const getSalesByDate = new GetSalesByDateRangeUseCase(saleRepository);
+      loadSales(range, searchTerm, currentPage);
+    }
+  }, [range, searchTerm, currentPage, loadSales]);
+
+  // Effect for calculating summaries on initial load
+  useEffect(() => {
+    const fetchAllSalesForSummary = async () => {
+      const getAllSales = new GetAllSalesUseCase(saleRepository);
       try {
-        const filtered = await getSalesByDate.execute(range.from, range.to);
-        setDisplayedSales(filtered);
-        toast.success(`Mostrando ${filtered.length} ventas encontradas.`);
+        const allSales = await getAllSales.execute();
+        calculateSummaries(allSales);
       } catch (error) {
-        console.error('Error fetching filtered sales:', error);
-        toast.error('No se pudieron filtrar las ventas.');
-      } finally {
-        setIsFiltering(false);
+        console.error('Error fetching all sales for summary:', error);
       }
-    } else {
+    };
+    fetchAllSalesForSummary();
+  }, [calculateSummaries]);
+
+  // The main useEffect now handles filtering automatically.
+  // This handler is kept for the button's onClick, but it's technically redundant.
+  // We can just rely on the state change to trigger the effect.
+  const handleFilter = () => {
+    if (!range?.from || !range?.to) {
       toast.info('Por favor, selecciona un rango de fechas completo.');
     }
-  }, [range]);
+    // The useEffect will handle the rest
+  };
 
-  const handleClearFilter = useCallback(async () => {
-    setIsFiltering(true);
-    const getAllSales = new GetAllSalesUseCase(saleRepository);
-    try {
-      const allSales = await getAllSales.execute();
-      setDisplayedSales(allSales);
-      setRange(undefined);
-      toast.info('Filtro de fechas limpiado.');
-    } catch (error) {
-      console.error('Error fetching sales after clearing filter:', error);
-      toast.error('No se pudieron recargar las ventas.');
-    } finally {
-      setIsFiltering(false);
-    }
+  const handleClearFilter = useCallback(() => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 29);
+    setRange({ from: startDate, to: endDate });
+    setSearchTerm('');
+    toast.success('Filtros reiniciados.');
   }, []);
 
   const handleExport = () => {
-    if (displayedSales.length === 0) {
+    if (sales.length === 0) {
       toast.error('No hay datos para exportar.');
       return;
     }
 
-    const dataToExport = displayedSales.flatMap(sale => 
-      sale.sale_details.map(detail => ({
+    const dataToExport = sales.flatMap((sale: SaleWithDetails) =>
+      sale.sale_details.map((detail: SaleWithDetails['sale_details'][0]) => ({
         'ID Venta': sale.id,
         'Fecha': format(new Date(sale.created_at!), 'yyyy-MM-dd HH:mm:ss'),
         'Total Venta (S/)': sale.total,
         'ID Producto': detail.product_id,
-        'Producto': detail.products?.name || 'N/A',
+        'Nombre Producto': detail.products?.name || 'N/A',
         'Cantidad': detail.quantity,
-        'Precio Unit. (S/)': detail.price,
+        'Precio Unitario (S/)': detail.price,
         'Subtotal (S/)': detail.quantity * detail.price,
       }))
     );
 
-    const csv = Papa.unparse(dataToExport, {
-      delimiter: ';', // Use semicolon for better Excel compatibility in some regions
-    });
-
-    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -188,11 +192,15 @@ export default function ReportesPage() {
               }
             />
           </div>
-          <button onClick={handleFilter} disabled={isFiltering || !range?.from || !range?.to} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400">
-            {isFiltering ? 'Filtrando...' : 'Filtrar'}
+          <button
+            onClick={handleFilter}
+            disabled={loading || !range?.from || !range?.to}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          >
+            Filtrar
           </button>
-          <button onClick={handleClearFilter} disabled={isFiltering} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400">
-            {isFiltering ? 'Cargando...' : 'Limpiar'}
+          <button onClick={handleClearFilter} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">
+            Limpiar
           </button>
           <button onClick={handleExport} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded ml-auto">
             Exportar a CSV
@@ -204,7 +212,7 @@ export default function ReportesPage() {
       <div className="mb-6">
         <input
           type="text"
-          placeholder="Buscar por ID de Venta..."
+          placeholder="Buscar por nombre de producto..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="block w-full md:w-1/3 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -212,7 +220,7 @@ export default function ReportesPage() {
       </div>
 
       {/* Summary Cards */}
-      {!loading && (
+      {(salesToday > 0 || salesThisMonth > 0) && !loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-md text-center">
             <h2 className="text-xl font-semibold text-gray-600 mb-2">Ventas de Hoy</h2>
@@ -226,15 +234,15 @@ export default function ReportesPage() {
       )}
 
       {/* Charts Section */}
-      {!loading && displayedSales.length > 0 && (
+      {!loading && sales.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-xl font-semibold mb-4">Tendencia de Ventas</h3>
-            <SalesTrendChart sales={displayedSales} />
+            <SalesTrendChart sales={sales} />
           </div>
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-xl font-semibold mb-4">Top 5 Productos Más Vendidos</h3>
-            <TopProductsChart sales={displayedSales} />
+            <TopProductsChart sales={sales} />
           </div>
         </div>
       )}
@@ -243,7 +251,7 @@ export default function ReportesPage() {
         <div className="flex justify-center items-center py-20">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
         </div>
-      ) : filteredAndSearchedSales.length === 0 ? (
+      ) : sales.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-lg shadow-md">
           <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -253,7 +261,7 @@ export default function ReportesPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {filteredAndSearchedSales.map((sale) => (
+          {sales.map((sale) => (
             <div key={sale.id} className="bg-white p-6 rounded-lg shadow-md">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -276,6 +284,18 @@ export default function ReportesPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && totalSales > ITEMS_PER_PAGE && (
+        <div className="mt-8">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalSales}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
     </div>

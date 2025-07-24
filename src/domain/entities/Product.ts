@@ -6,4 +6,6 @@ export interface Product {
   price: number;        // Precio de venta
   stock: number;        // Cantidad disponible en inventario
   created_at?: string;  // Fecha de creación (manejada por Supabase)
+  category_id: number | null;
+  categories?: { name: string } | null;
 }

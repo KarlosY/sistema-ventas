@@ -8,6 +8,11 @@ export interface SaleWithDetails extends Sale {
   sale_details: (SaleDetail & { products: Product | null })[];
 }
 
+export interface PaginatedSales {
+  sales: SaleWithDetails[];
+  totalCount: number;
+}
+
 export interface ISaleRepository {
   /**
    * Crea una nueva venta junto con sus detalles.
@@ -28,7 +33,10 @@ export interface ISaleRepository {
    * Obtiene todas las ventas dentro de un rango de fechas específico.
    * @param startDate - La fecha de inicio del rango.
    * @param endDate - La fecha de fin del rango.
-   * @returns Una promesa que se resuelve con un array de ventas filtradas.
+   * @param searchTerm - Término de búsqueda opcional para filtrar por nombre de producto.
+   * @param page - Número de página opcional para la paginación.
+   * @param limit - Número de resultados por página opcional.
+   * @returns Una promesa que se resuelve con un objeto que contiene las ventas y el conteo total.
    */
-  findByDateRange(startDate: Date, endDate: Date): Promise<SaleWithDetails[]>;
+  findByDateRange(startDate: Date, endDate: Date, searchTerm?: string, page?: number, limit?: number): Promise<PaginatedSales>;
 }

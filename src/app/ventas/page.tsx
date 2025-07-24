@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Product } from '@/domain/entities/Product';
+import { Category } from '@/domain/entities/Category';
 import { SupabaseProductRepository } from '@/infrastructure/repositories/SupabaseProductRepository';
 import { GetAllProductsUseCase } from '@/application/use-cases/getAllProducts';
 import { CreateSaleUseCase } from '@/application/use-cases/createSale';
 import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSaleRepository';
+import { SupabaseCategoryRepository } from '@/infrastructure/repositories/SupabaseCategoryRepository';
+import { GetAllCategoriesUseCase } from '@/application/use-cases/getAllCategories';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { formatCurrency } from '@/utils/currency';
@@ -16,30 +19,38 @@ export interface CartItem extends Product {
 
 function VentasComponent() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(''); // '' para 'Todas'
   const [loading, setLoading] = useState(true);
 
   // Instanciamos dependencias
   const productRepository = new SupabaseProductRepository();
   const saleRepository = new SupabaseSaleRepository();
+  const categoryRepository = new SupabaseCategoryRepository();
   const getAllProducts = new GetAllProductsUseCase(productRepository);
+  const getAllCategories = new GetAllCategoriesUseCase(categoryRepository);
   const createSale = new CreateSaleUseCase(saleRepository);
 
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const productsData = await getAllProducts.execute();
-        setProducts(productsData);
+        const [productsResponse, categoriesData] = await Promise.all([
+          getAllProducts.execute(), // No pagination needed here, get all
+          getAllCategories.execute(),
+        ]);
+        setProducts(productsResponse.products);
+        setCategories(categoriesData);
       } catch (error) {
-        console.error("Error loading products:", error);
-        toast.error("No se pudieron cargar los productos disponibles.");
+        console.error("Error loading data:", error);
+        toast.error("No se pudieron cargar los datos iniciales.");
       } finally {
         setLoading(false);
       }
     };
-    loadProducts();
+    loadData();
   }, []);
 
   const handleAddProduct = () => {
@@ -89,6 +100,13 @@ function VentasComponent() {
     }
   };
 
+  const filteredProducts = useMemo(() => {
+    if (!selectedCategoryId) {
+      return products;
+    }
+    return products.filter(p => p.category_id?.toString() === selectedCategoryId);
+  }, [products, selectedCategoryId]);
+
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleRegisterSale = async () => {
@@ -99,8 +117,8 @@ function VentasComponent() {
       toast.success(`Venta registrada exitosamente por un total de: ${formatCurrency(total)}`);
       setCart([]); // Limpiar carrito
       // Opcional: Recargar la lista de productos para reflejar el nuevo stock
-      const productsData = await getAllProducts.execute();
-      setProducts(productsData);
+      const updatedProductsResponse = await getAllProducts.execute();
+      setProducts(updatedProductsResponse.products);
     } catch (error) {
       toast.error(`Error al registrar la venta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
@@ -124,21 +142,34 @@ function VentasComponent() {
           </div>
         ) : (
           <div className="flex items-center space-x-4">
-            <select
-              value={selectedProductId}
-              onChange={(e) => setSelectedProductId(e.target.value)}
-              className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="">Seleccione un producto</option>
-              {products.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({formatCurrency(p.price)}) - Stock: {p.stock}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <select
+                value={selectedCategoryId}
+                onChange={e => setSelectedCategoryId(e.target.value)}
+                className="block w-full sm:w-1/3 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">Todas las categorías</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <select 
+                value={selectedProductId}
+                onChange={e => setSelectedProductId(e.target.value)}
+                className="block w-full sm:w-2/3 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={loading}
+              >
+                <option value="">Seleccione un producto</option>
+                {filteredProducts.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({formatCurrency(p.price)}) - Stock: {p.stock}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button 
               onClick={handleAddProduct}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4 sm:mt-0 sm:ml-4"
             >
               Añadir
             </button>

@@ -1,6 +1,6 @@
 // src/infrastructure/repositories/SupabaseSaleRepository.ts
 
-import { ISaleRepository } from '@/domain/repositories/ISaleRepository';
+import { ISaleRepository, PaginatedSales } from '@/domain/repositories/ISaleRepository';
 import { Sale } from '@/domain/entities/Sale';
 import { SaleDetail } from '@/domain/entities/SaleDetail';
 import { SaleWithDetails } from '@/domain/repositories/ISaleRepository';
@@ -97,24 +97,42 @@ export class SupabaseSaleRepository implements ISaleRepository {
     return data || [];
   }
 
-  async findByDateRange(startDate: Date, endDate: Date): Promise<SaleWithDetails[]> {
-    const { data, error } = await supabase
+  async findByDateRange(startDate: Date, endDate: Date, searchTerm?: string, page?: number, limit?: number): Promise<PaginatedSales> {
+    // Base query with required joins and date filters
+    let query = supabase
       .from(this.SALES_TABLE)
       .select(`
         *,
-        sale_details (*,
-          products (*)
+        sale_details!inner (*,
+          products!inner (*)
         )
-      `)
+      `, { count: 'exact' })
       .gte('created_at', startDate.toISOString())
-      .lt('created_at', endDate.toISOString())
-      .order('created_at', { ascending: false });
+      .lt('created_at', endDate.toISOString());
+
+    // Apply search term filter if provided
+    if (searchTerm) {
+      query = query.ilike('sale_details.products.name', `%${searchTerm}%`);
+    }
+
+    // Apply pagination if page and limit are provided
+    if (page && limit) {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+    }
+
+    // Execute the query
+    const { data, error, count } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching sales by date range:', error);
       throw new Error('Could not fetch sales by date range.');
     }
 
-    return data || [];
+    return {
+      sales: data || [],
+      totalCount: count || 0,
+    };
   }
 }
