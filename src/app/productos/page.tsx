@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Product } from '@/domain/entities/Product';
 import { SupabaseProductRepository } from '@/infrastructure/repositories/SupabaseProductRepository';
 import { GetAllProductsUseCase } from '@/application/use-cases/getAllProducts';
@@ -17,6 +17,9 @@ export default function ProductosPage() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   // Instanciamos el repositorio y los casos de uso
   const productRepository = new SupabaseProductRepository();
@@ -92,6 +95,20 @@ export default function ProductosPage() {
     }
   };
 
+  const filteredProducts = useMemo(() => {
+    return products.filter(product =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [products, searchTerm]);
+
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+
   return (
     <div className="container mx-auto p-8">
       <div className="flex justify-between items-center mb-6">
@@ -121,6 +138,21 @@ export default function ProductosPage() {
       ) : (
       <div className="mt-8">
         <h2 className="text-2xl font-semibold mb-4">Listado de Productos</h2>
+        
+        {/* Search Bar */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Buscar producto por nombre..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset page when searching
+            }}
+            className="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
+
         <div className="shadow-lg rounded-lg overflow-hidden">
           <table className="min-w-full leading-normal">
             <thead>
@@ -132,7 +164,7 @@ export default function ProductosPage() {
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
+              {paginatedProducts.map((product) => (
                 <tr key={product.id} className="border-b border-gray-200 hover:bg-gray-100">
                   <td className="px-5 py-4 text-sm bg-white">{product.name}</td>
                   <td className="px-5 py-4 text-sm bg-white">{formatCurrency(product.price)}</td>
@@ -143,7 +175,7 @@ export default function ProductosPage() {
                   </td>
                 </tr>
               ))}
-              {products.length === 0 && (
+              {paginatedProducts.length === 0 && !loading && (
                 <tr>
                   <td colSpan={4}>
                     <div className="text-center py-20">
@@ -159,6 +191,29 @@ export default function ProductosPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center mt-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-l disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <span className="text-gray-700">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-r disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
       </div>
       )}
     </div>

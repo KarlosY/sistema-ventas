@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSaleRepository';
 import { GetAllSalesUseCase } from '@/application/use-cases/getAllSales';
 import { GetSalesByDateRangeUseCase } from '@/application/use-cases/getSalesByDateRange';
@@ -31,6 +31,9 @@ export default function ReportesPage() {
   // State for the date picker UI
   const [range, setRange] = useState<DateRange | undefined>();
 
+  // State for search
+  const [searchTerm, setSearchTerm] = useState('');
+
   const calculateSummaries = (sales: SaleWithDetails[]) => {
     const today = new Date();
     const currentMonth = today.getMonth();
@@ -56,6 +59,15 @@ export default function ReportesPage() {
     setSalesToday(todaySales);
     setSalesThisMonth(monthSales);
   };
+
+  const filteredAndSearchedSales = useMemo(() => {
+    if (!searchTerm) {
+      return displayedSales;
+    }
+    return displayedSales.filter(sale =>
+      sale.id.toString().includes(searchTerm)
+    );
+  }, [displayedSales, searchTerm]);
 
   // Initial data fetch for summaries and initial view
   useEffect(() => {
@@ -188,6 +200,17 @@ export default function ReportesPage() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Buscar por ID de Venta..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="block w-full md:w-1/3 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+
       {/* Summary Cards */}
       {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -220,7 +243,7 @@ export default function ReportesPage() {
         <div className="flex justify-center items-center py-20">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
         </div>
-      ) : displayedSales.length === 0 ? (
+      ) : filteredAndSearchedSales.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-lg shadow-md">
           <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -230,7 +253,7 @@ export default function ReportesPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {displayedSales.map((sale) => (
+          {filteredAndSearchedSales.map((sale) => (
             <div key={sale.id} className="bg-white p-6 rounded-lg shadow-md">
               <div className="flex justify-between items-start mb-4">
                 <div>
