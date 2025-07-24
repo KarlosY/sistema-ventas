@@ -13,6 +13,8 @@ import 'react-day-picker/dist/style.css';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Papa from 'papaparse';
+import { SalesTrendChart } from '@/components/charts/SalesTrendChart';
+import { TopProductsChart } from '@/components/charts/TopProductsChart';
 
 const saleRepository = new SupabaseSaleRepository();
 
@@ -119,17 +121,20 @@ export default function ReportesPage() {
     const dataToExport = displayedSales.flatMap(sale => 
       sale.sale_details.map(detail => ({
         'ID Venta': sale.id,
-        'Fecha': new Date(sale.created_at!).toLocaleString('es-PE'),
-        'Total Venta (S/)': sale.total.toFixed(2),
+        'Fecha': format(new Date(sale.created_at!), 'yyyy-MM-dd HH:mm:ss'),
+        'Total Venta (S/)': sale.total,
         'ID Producto': detail.product_id,
         'Producto': detail.products?.name || 'N/A',
         'Cantidad': detail.quantity,
-        'Precio Unit. (S/)': detail.price.toFixed(2),
-        'Subtotal (S/)': (detail.quantity * detail.price).toFixed(2),
+        'Precio Unit. (S/)': detail.price,
+        'Subtotal (S/)': detail.quantity * detail.price,
       }))
     );
 
-    const csv = Papa.unparse(dataToExport);
+    const csv = Papa.unparse(dataToExport, {
+      delimiter: ';', // Use semicolon for better Excel compatibility in some regions
+    });
+
     const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -193,6 +198,20 @@ export default function ReportesPage() {
           <div className="bg-white p-6 rounded-lg shadow-md text-center">
             <h2 className="text-xl font-semibold text-gray-600 mb-2">Ventas del Mes</h2>
             <p className="text-3xl font-bold text-green-600">{formatCurrency(salesThisMonth)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Charts Section */}
+      {!loading && displayedSales.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-xl font-semibold mb-4">Tendencia de Ventas</h3>
+            <SalesTrendChart sales={displayedSales} />
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-xl font-semibold mb-4">Top 5 Productos Más Vendidos</h3>
+            <TopProductsChart sales={displayedSales} />
           </div>
         </div>
       )}
