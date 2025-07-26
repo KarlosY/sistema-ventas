@@ -31,6 +31,9 @@ export default async function Home() {
             <Link href="/reportes" className="px-6 py-3 bg-gray-700 text-white font-semibold rounded-lg shadow-md hover:bg-gray-800 transition-colors">
               Ver Reportes
             </Link>
+            <Link href="/registro" className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-colors">
+              Registrar Usuario
+            </Link>
           </>
         )}
         {session && (

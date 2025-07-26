@@ -35,6 +35,7 @@ export default async function Navbar() {
                     <>
                       <Link href="/productos" className="text-gray-600 hover:bg-gray-100 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Productos</Link>
                       <Link href="/reportes" className="text-gray-600 hover:bg-gray-100 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Reportes</Link>
+                      <Link href="/registro" className="text-gray-600 hover:bg-gray-100 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Registrar Usuario</Link>
                     </>
                   )}
                 </div>

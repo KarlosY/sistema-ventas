@@ -31,7 +31,7 @@ export async function middleware(req: NextRequest) {
     const userRole = profile?.role;
 
     // Rutas solo para administradores
-    const adminRoutes = ['/productos', '/reportes'];
+    const adminRoutes = ['/productos', '/reportes', '/registro'];
 
     if (userRole !== 'Administrador' && adminRoutes.some(route => pathname.startsWith(route))) {
         // Si un no-administrador intenta acceder a una ruta de admin, redirigir al inicio
