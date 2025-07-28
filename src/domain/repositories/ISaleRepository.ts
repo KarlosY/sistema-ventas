@@ -13,6 +13,16 @@ export interface PaginatedSales {
   totalCount: number;
 }
 
+export interface SalesSummary {
+  today: number;
+  month: number;
+}
+
+export interface SalesSummary {
+  today: number;
+  month: number;
+}
+
 export interface ISaleRepository {
   /**
    * Crea una nueva venta junto con sus detalles.
@@ -39,4 +49,5 @@ export interface ISaleRepository {
    * @returns Una promesa que se resuelve con un objeto que contiene las ventas y el conteo total.
    */
   findByDateRange(startDate: Date, endDate: Date, searchTerm?: string, page?: number, limit?: number): Promise<PaginatedSales>;
+  getSummary(): Promise<SalesSummary>;
 }

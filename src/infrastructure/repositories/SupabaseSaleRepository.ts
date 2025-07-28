@@ -1,6 +1,6 @@
 // src/infrastructure/repositories/SupabaseSaleRepository.ts
 
-import { ISaleRepository, PaginatedSales } from '@/domain/repositories/ISaleRepository';
+import { ISaleRepository, PaginatedSales, SalesSummary } from '@/domain/repositories/ISaleRepository';
 import { Sale } from '@/domain/entities/Sale';
 import { SaleDetail } from '@/domain/entities/SaleDetail';
 import { SaleWithDetails } from '@/domain/repositories/ISaleRepository';
@@ -134,5 +134,45 @@ export class SupabaseSaleRepository implements ISaleRepository {
       sales: data || [],
       totalCount: count || 0,
     };
+  }
+
+  async getSummary(): Promise<SalesSummary> {
+    const now = new Date();
+
+    // Today's sales
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    const { data: todayData, error: todayError } = await supabase
+      .from(this.SALES_TABLE)
+      .select('total')
+      .gte('created_at', startOfDay.toISOString())
+      .lt('created_at', endOfDay.toISOString());
+
+    if (todayError) {
+      console.error("Error fetching today's sales:", todayError);
+      throw new Error("Could not fetch today's sales summary.");
+    }
+
+    const todayTotal = todayData.reduce((sum, sale) => sum + sale.total, 0);
+
+    // Month's sales
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const { data: monthData, error: monthError } = await supabase
+      .from(this.SALES_TABLE)
+      .select('total')
+      .gte('created_at', startOfMonth.toISOString())
+      .lt('created_at', endOfMonth.toISOString());
+
+    if (monthError) {
+      console.error("Error fetching month's sales:", monthError);
+      throw new Error("Could not fetch month's sales summary.");
+    }
+
+    const monthTotal = monthData.reduce((sum, sale) => sum + sale.total, 0);
+
+    return { today: todayTotal, month: monthTotal };
   }
 }
