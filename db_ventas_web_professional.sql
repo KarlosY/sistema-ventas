@@ -768,9 +768,9 @@ INSERT INTO customers (document_type, document_number, name, email, phone, addre
 
 -- Usuario administrador de ejemplo (contraseña: admin123 - hash bcrypt)
 INSERT INTO users (id, email, password, full_name, phone, is_active, email_verified) VALUES
-('550e8400-e29b-41d4-a716-446655440000', 'admin@sistema.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIq.Nq8zXu', 'Administrador del Sistema', '999111222', TRUE, TRUE),
-('550e8400-e29b-41d4-a716-446655440001', 'vendedor1@sistema.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIq.Nq8zXu', 'Carlos Vendedor Uno', '988222333', TRUE, TRUE),
-('550e8400-e29b-41d4-a716-446655440002', 'vendedor2@sistema.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIq.Nq8zXu', 'Ana Vendedor Dos', '977333444', TRUE, TRUE);
+('550e8400-e29b-41d4-a716-446655440000', 'admin@sistema.com', '$2a$12$5Stt2ZzL7QUpri5dIAEYi.XkMnkbGkHKJMdfmOczwqUkRD3ONmb6u', 'Administrador del Sistema', '999111222', TRUE, TRUE),
+('550e8400-e29b-41d4-a716-446655440001', 'vendedor1@sistema.com', '$2a$12$5Stt2ZzL7QUpri5dIAEYi.XkMnkbGkHKJMdfmOczwqUkRD3ONmb6u', 'Carlos Vendedor Uno', '988222333', TRUE, TRUE),
+('550e8400-e29b-41d4-a716-446655440002', 'vendedor2@sistema.com', '$2a$12$5Stt2ZzL7QUpri5dIAEYi.XkMnkbGkHKJMdfmOczwqUkRD3ONmb6u', 'Ana Vendedor Dos', '977333444', TRUE, TRUE);
 
 -- Actualizar perfil del administrador
 UPDATE profiles SET role = 'Administrador' WHERE id = '550e8400-e29b-41d4-a716-446655440000';
