@@ -1,9 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSaleRepository';
-import { GetSalesByDateRangeUseCase } from '@/application/use-cases/getSalesByDateRange';
-import { GetSalesSummary } from '@/app/use-cases/getSalesSummary';
 import { SaleWithDetails, SalesSummary } from '@/domain/repositories/ISaleRepository';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -16,8 +13,6 @@ import Papa from 'papaparse';
 import { SalesTrendChart } from '@/components/charts/SalesTrendChart';
 import { TopProductsChart } from '@/components/charts/TopProductsChart';
 import { Pagination } from '@/components/Pagination';
-
-const saleRepository = new SupabaseSaleRepository();
 
 export default function ReportesPage() {
   // State for the data being displayed in the list
@@ -47,9 +42,11 @@ export default function ReportesPage() {
   const loadSales = useCallback(async (currentRange: DateRange, search: string, page: number) => {
     if (currentRange?.from && currentRange?.to) {
       setLoading(true);
-      const getSalesByDate = new GetSalesByDateRangeUseCase(saleRepository);
       try {
-        const { sales: filteredSales, totalCount } = await getSalesByDate.execute(currentRange.from, currentRange.to, search, page, ITEMS_PER_PAGE);
+        const startDate = currentRange.from.toISOString();
+        const endDate = currentRange.to.toISOString();
+        const response = await fetch(`/api/sales?startDate=${startDate}&endDate=${endDate}&search=${search}&page=${page}&limit=${ITEMS_PER_PAGE}`);
+        const { sales: filteredSales, totalCount } = await response.json();
         setSales(filteredSales);
         setTotalSales(totalCount);
       } catch (error) {
@@ -76,9 +73,9 @@ export default function ReportesPage() {
   // Effect for loading the sales summary
   useEffect(() => {
     const fetchSummary = async () => {
-      const getSalesSummary = new GetSalesSummary(saleRepository);
       try {
-        const summaryData = await getSalesSummary.execute();
+        const response = await fetch('/api/sales/summary');
+        const summaryData = await response.json();
         setSummary(summaryData);
       } catch (error) {
         console.error('Error fetching sales summary:', error);

@@ -3,12 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Product } from '@/domain/entities/Product';
 import { Category } from '@/domain/entities/Category';
-import { SupabaseProductRepository } from '@/infrastructure/repositories/SupabaseProductRepository';
-import { GetAllProductsUseCase } from '@/application/use-cases/getAllProducts';
-import { CreateSaleUseCase } from '@/application/use-cases/createSale';
-import { SupabaseSaleRepository } from '@/infrastructure/repositories/SupabaseSaleRepository';
-import { SupabaseCategoryRepository } from '@/infrastructure/repositories/SupabaseCategoryRepository';
-import { GetAllCategoriesUseCase } from '@/application/use-cases/getAllCategories';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { formatCurrency } from '@/utils/currency';
@@ -22,26 +16,20 @@ function VentasComponent() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(''); // '' para 'Todas'
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [loading, setLoading] = useState(true);
-
-  // Instanciamos dependencias
-  const productRepository = new SupabaseProductRepository();
-  const saleRepository = new SupabaseSaleRepository();
-  const categoryRepository = new SupabaseCategoryRepository();
-  const getAllProducts = new GetAllProductsUseCase(productRepository);
-  const getAllCategories = new GetAllCategoriesUseCase(categoryRepository);
-  const createSale = new CreateSaleUseCase(saleRepository);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [productsResponse, categoriesData] = await Promise.all([
-          getAllProducts.execute(), // No pagination needed here, get all
-          getAllCategories.execute(),
+        const [productsResponse, categoriesResponse] = await Promise.all([
+          fetch('/api/products?limit=1000'),
+          fetch('/api/categories'),
         ]);
-        setProducts(productsResponse.products);
+        const { products: productsData } = await productsResponse.json();
+        const categoriesData = await categoriesResponse.json();
+        setProducts(productsData);
         setCategories(categoriesData);
       } catch (error) {
         console.error("Error loading data:", error);
@@ -113,12 +101,21 @@ function VentasComponent() {
     if (cart.length === 0) return;
 
     try {
-      await createSale.execute(cart);
+      const response = await fetch('/api/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart })
+      });
+      
+      if (!response.ok) throw new Error('Error al registrar venta');
+      
       toast.success(`Venta registrada exitosamente por un total de: ${formatCurrency(total)}`);
-      setCart([]); // Limpiar carrito
-      // Opcional: Recargar la lista de productos para reflejar el nuevo stock
-      const updatedProductsResponse = await getAllProducts.execute();
-      setProducts(updatedProductsResponse.products);
+      setCart([]);
+      
+      // Recargar productos para reflejar nuevo stock
+      const productsResponse = await fetch('/api/products?limit=1000');
+      const { products: productsData } = await productsResponse.json();
+      setProducts(productsData);
     } catch (error) {
       toast.error(`Error al registrar la venta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }

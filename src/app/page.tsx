@@ -1,29 +1,34 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { verifyToken } from '@/infrastructure/auth/jwt';
 
 export default async function Home() {
   const cookieStore = cookies();
-  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+  const token = cookieStore.get('auth_token')?.value;
 
-  const { data: { session } } = await supabase.auth.getSession();
+  let user: { email: string; role: string; fullName: string } | null = null;
 
-  let userRole: string | null = null;
-  if (session) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
-    userRole = profile?.role ?? null;
+  if (token) {
+    try {
+      const decoded = verifyToken(token);
+      user = {
+        email: decoded.email,
+        role: decoded.role,
+        fullName: decoded.fullName
+      };
+    } catch (error) {
+      user = null;
+    }
   }
 
   return (
     <div className="text-center mt-10">
       <h1 className="text-4xl font-bold text-gray-800 mb-4">Bienvenido al Sistema de Ventas</h1>
-      <p className="text-lg text-gray-600 mb-8">Selecciona una opción para comenzar</p>
+      {user && (
+        <p className="text-lg text-gray-600 mb-8">Hola, {user.fullName} - Selecciona una opción para comenzar</p>
+      )}
       <nav className="flex flex-wrap justify-center gap-4">
-        {userRole === 'Administrador' && (
+        {user?.role === 'Administrador' && (
           <>
             <Link href="/productos" className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
               Gestionar Productos
@@ -36,7 +41,7 @@ export default async function Home() {
             </Link>
           </>
         )}
-        {session && (
+        {user && (
           <Link href="/ventas" className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors">
             Registrar Venta
           </Link>

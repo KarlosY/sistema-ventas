@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 
 export default function LoginForm() {
@@ -10,24 +9,33 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClientComponentClient();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (error) {
-      setError('Credenciales inválidas. Por favor, inténtalo de nuevo.');
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Credenciales inválidas. Por favor, inténtalo de nuevo.');
+        setLoading(false);
+      } else {
+        // Esperar un momento para que la cookie se establezca
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Redirigir a la página principal
+        window.location.href = '/';
+      }
+    } catch (err) {
+      setError('Error al conectar con el servidor.');
       setLoading(false);
-    } else {
-      // El router se refrescará y el middleware se encargará de la redirección
-      router.refresh();
     }
   };
 
@@ -40,7 +48,6 @@ export default function LoginForm() {
         <div className="mt-1">
           <input
             id="email"
-            name="email"
             type="email"
             autoComplete="email"
             required
@@ -58,7 +65,6 @@ export default function LoginForm() {
         <div className="mt-1">
           <input
             id="password"
-            name="password"
             type="password"
             autoComplete="current-password"
             required
